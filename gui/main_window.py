@@ -750,7 +750,7 @@ class CenterStarApp(QMainWindow):
             QMessageBox.warning(self, "No Output to Save", "Please run an alignment first to generate output.")
             return
 
-        filepath, _ = QFileDialog.getSaveFileName(self, "Save All Output as TXT", "center_star_msa_output.txt",
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save All Output as TXT", "output/center_star_msa_output.txt",
                                                   "Text Files (*.txt);;All Files (*)")
         if filepath:
             try:
@@ -761,7 +761,7 @@ class CenterStarApp(QMainWindow):
                 QMessageBox.critical(self, "Error Saving TXT File", f"Could not save the file:\n{e}")
 
     def save_widget_as_image(self, widget: QWidget, dialog_title: str = "Save as Image",
-                             default_filename: str = "output.png"):
+                             default_filename: str = "output/output.png"):
         """
         Saves the visual content of a given QWidget (e.g., QTableWidget, QTextEdit) as an image file.
 
@@ -945,19 +945,19 @@ class CenterStarApp(QMainWindow):
             QMessageBox.warning(self, "No Text Output",
                                 "The summary text output (Tab 1) is empty. Cannot save as image.")
             return
-        self.save_widget_as_image(self.results_display, "Save Summary (Tab 1) as Image", "msa_summary_alignment.png")
+        self.save_widget_as_image(self.results_display, "Save Summary (Tab 1) as Image", "output/msa_summary_alignment.png")
 
     def save_center_election_matrix_as_image(self):
         """Saves the 'Center Election Matrix' QTableWidget as an image."""
         self.save_widget_as_image(self.center_election_matrix_table_widget, "Save Center Election Matrix as Image",
-                                  "center_election_matrix.png")
+                                  "output/center_election_matrix.png")
 
     def save_identity_matrix_as_image(self):
         """Saves the 'Pairwise Identity Matrix' QTableWidget as an image."""
         self.save_widget_as_image(self.identity_matrix_table_widget, "Save Pairwise Identity Matrix as Image",
-                                  "identity_matrix.png")
+                                  "output/identity_matrix.png")
 
     def save_distance_matrix_as_image(self):
         """Saves the 'Pairwise Distance Matrix' QTableWidget as an image."""
         self.save_widget_as_image(self.distance_matrix_table_widget, "Save Pairwise Distance Matrix as Image",
-                                  "distance_matrix.png")
+                                  "output/distance_matrix.png")
