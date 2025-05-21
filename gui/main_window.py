@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 )
 
 from gui.dialogs import AddSequenceDialog
-from core.alignment import get_center_sequence_info, center_star
+from core.alignment import get_center_sequence, center_star
 from core.fasta_parser import parse_fasta
 from core.consensus import generate_consensus
 from core.statistics import calculate_msa_statistics
@@ -28,13 +28,18 @@ class CenterStarApp(QMainWindow):
         """
         super().__init__()
         self.setWindowTitle("Center Star Algorithm MSA Tool")
-        self.setGeometry(100, 100, 1800, 1300)  # Adjusted default size
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        window_width, window_height = 1800, 1300
+        x = (screen_geometry.width() - window_width) // 2
+        y = (screen_geometry.height() - window_height) // 2
+        self.setGeometry(x, y, window_width, window_height)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        self.results_available = False  # Flag to track if results are generated
+        self.results_available = False
 
         # --- Input Group ---
         input_group = QGroupBox("Input Sequences")
@@ -42,7 +47,7 @@ class CenterStarApp(QMainWindow):
         self.sequence_list_widget = QListWidget()
         self.sequence_list_widget.setSelectionMode(QListWidget.ExtendedSelection)
         self.sequence_list_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.sequence_list_widget.setMinimumHeight(200)  # Ensure it has some initial visible space
+        self.sequence_list_widget.setMinimumHeight(200)
         input_main_layout.addWidget(self.sequence_list_widget)
 
         input_buttons_layout = QHBoxLayout()
@@ -76,8 +81,8 @@ class CenterStarApp(QMainWindow):
         self.mismatch_penalty_input.setRange(-100, 0)
         self.mismatch_penalty_input.setValue(-1)
         self.gap_penalty_input = QSpinBox()
-        self.gap_penalty_input.setRange(-100, 0)  # Gap penalty is usually negative or zero
-        self.gap_penalty_input.setValue(-2)  # Common default for gap penalty
+        self.gap_penalty_input.setRange(-100, 0)
+        self.gap_penalty_input.setValue(-2)
         scoring_layout.addRow("Match Score:", self.match_score_input)
         scoring_layout.addRow("Mismatch Penalty:", self.mismatch_penalty_input)
         scoring_layout.addRow("Gap Penalty:", self.gap_penalty_input)
@@ -98,8 +103,8 @@ class CenterStarApp(QMainWindow):
         self.tab1_layout = QVBoxLayout(self.tab1_widget)
         self.results_display = QTextEdit()
         self.results_display.setReadOnly(True)
-        self.results_display.setFontFamily("Courier New")  # Monospaced for alignment
-        self.results_display.setLineWrapMode(QTextEdit.NoWrap)  # Important for alignments
+        self.results_display.setFontFamily("Courier New")
+        self.results_display.setLineWrapMode(QTextEdit.NoWrap)
         self.results_display.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.tab1_layout.addWidget(self.results_display)
         self.output_tabs.addTab(self.tab1_widget, "📊 Alignment & Summary")
@@ -153,18 +158,18 @@ class CenterStarApp(QMainWindow):
         save_buttons_layout.addWidget(self.save_distance_matrix_image_button)
         self.main_layout.addLayout(save_buttons_layout)
 
-        # Connect tab changed signal
+
         self.output_tabs.currentChanged.connect(self._on_tab_changed)
-        # Set initial state for results and button visibility
+
         self._set_results_availability(False)
 
-        # Stretch factors for layout
-        self.main_layout.setStretchFactor(input_group, 2)  # Input area takes less space
-        self.main_layout.setStretchFactor(scoring_group, 1)  # Scoring takes minimal space
-        self.main_layout.setStretchFactor(self.output_tabs, 7)  # Output tabs take most space
 
-        self.current_sequences_with_ids = []  # List of (id, sequence_string)
-        self.full_text_output_for_saving = ""  # Stores the complete text output for saving
+        self.main_layout.setStretchFactor(input_group, 2)
+        self.main_layout.setStretchFactor(scoring_group, 1)
+        self.main_layout.setStretchFactor(self.output_tabs, 7)
+
+        self.current_sequences_with_ids = []
+        self.full_text_output_for_saving = ""
 
     def _set_results_availability(self, available: bool):
         """
@@ -175,7 +180,6 @@ class CenterStarApp(QMainWindow):
         """
         self.results_available = available
         if not available:
-            # Clear data if results are becoming unavailable
             self.results_display.clear()
             self.identity_matrix_table_widget.clearContents()
             self.identity_matrix_table_widget.setRowCount(0)
@@ -188,9 +192,9 @@ class CenterStarApp(QMainWindow):
             self.center_election_matrix_table_widget.setColumnCount(0)
             self.full_text_output_for_saving = ""
 
-        # Enable/disable the general "Save All Output as TXT" button
+
         self.save_text_file_button.setEnabled(self.results_available)
-        # Update visibility of tab-specific image save buttons
+
         self._update_image_save_button_visibility()
 
     def _update_image_save_button_visibility(self):
@@ -205,13 +209,13 @@ class CenterStarApp(QMainWindow):
 
         if self.results_available:
             current_index = self.output_tabs.currentIndex()
-            if current_index == 0:  # Alignment & Summary Tab
+            if current_index == 0:
                 show_summary_btn = True
-            elif current_index == 1:  # Center Election Matrix Tab
+            elif current_index == 1:
                 show_center_election_btn = True
-            elif current_index == 2:  # Pairwise Identity Matrix Tab
+            elif current_index == 2:
                 show_identity_btn = True
-            elif current_index == 3:  # Pairwise Distance Matrix Tab
+            elif current_index == 3:
                 show_distance_btn = True
 
         self.save_text_summary_image_button.setVisible(show_summary_btn)
@@ -238,7 +242,8 @@ class CenterStarApp(QMainWindow):
             preview = seq_data[:30] + "..." if len(seq_data) > 30 else seq_data
             item_text = f"{seq_id} ({len(seq_data)}bp): {preview}"
             item = QListWidgetItem(item_text)
-            item.setData(Qt.UserRole, (seq_id, seq_data))  # Store full data
+            item.setData(Qt.UserRole, (seq_id, seq_data))
+
             self.sequence_list_widget.addItem(item)
 
     def _get_existing_ids(self) -> list[str]:
@@ -284,7 +289,6 @@ class CenterStarApp(QMainWindow):
                 for seq_id, seq_data in parsed_sequences_from_file:
                     original_seq_id = seq_id
                     counter = 1
-                    # Ensure ID is unique within the current file load and globally
                     while seq_id in existing_ids or seq_id in ids_in_current_file_load:
                         seq_id = f"{original_seq_id}_{counter}"
                         counter += 1
@@ -301,18 +305,17 @@ class CenterStarApp(QMainWindow):
 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"An error occurred while parsing {filepath}:\n{e}")
-                # Optionally, decide if you want to stop processing further files on error
-                # or just skip the problematic one. Current implementation skips.
+
 
         if newly_parsed_sequences:
-            self._set_results_availability(False)  # Invalidate old results
+            self._set_results_availability(False)
             self.current_sequences_with_ids.extend(newly_parsed_sequences)
             self._update_sequence_list_widget()
             sequences_appended_count = len(newly_parsed_sequences)
             QMessageBox.information(self, "Success",
                                     f"Successfully appended {sequences_appended_count} new sequences from the selected file(s).\n"
                                     f"Total sequences processed from files: {sequences_loaded_count}.")
-        elif sequences_loaded_count == 0 and filepaths:  # Files were selected but no sequences came from them
+        elif sequences_loaded_count == 0 and filepaths:
             QMessageBox.information(self, "Info", "No new sequences were added from the selected file(s).")
 
     def load_test_sequences(self):
@@ -327,7 +330,7 @@ class CenterStarApp(QMainWindow):
             if reply == QMessageBox.No:
                 return
 
-        self._set_results_availability(False)  # Clear previous results
+        self._set_results_availability(False)
         test_sequences = [
             ("s1_test", "ATTGCCATT"),
             ("s2_test", "ATGGCCATT"),
@@ -335,7 +338,7 @@ class CenterStarApp(QMainWindow):
             ("s4_test", "ATCTTCTT"),
             ("s5_test", "ACTGACC")
         ]
-        self.current_sequences_with_ids = list(test_sequences)  # Make a mutable copy
+        self.current_sequences_with_ids = list(test_sequences)
         self._update_sequence_list_widget()
         QMessageBox.information(self, "Test Data Loaded",
                                 f"{len(self.current_sequences_with_ids)} test sequences have been loaded.")
@@ -349,10 +352,10 @@ class CenterStarApp(QMainWindow):
         if dialog.exec_() == QDialog.Accepted:
             seq_id, seq_data = dialog.get_data()
             if seq_id and seq_data:
-                self._set_results_availability(False)  # New data invalidates old results
+                self._set_results_availability(False)
                 self.current_sequences_with_ids.append((seq_id, seq_data))
                 self._update_sequence_list_widget()
-                # Optionally, select the newly added item
+
                 self.sequence_list_widget.setCurrentRow(self.sequence_list_widget.count() - 1)
 
     def remove_selected_sequences(self):
@@ -369,15 +372,15 @@ class CenterStarApp(QMainWindow):
         for item in selected_items:
             data = item.data(Qt.UserRole)
             if data:
-                ids_to_remove.add(data[0])  # Get the ID
+                ids_to_remove.add(data[0])
 
-        # Filter out the sequences to be removed
+
         self.current_sequences_with_ids = [
             item_tuple for item_tuple in self.current_sequences_with_ids
             if item_tuple[0] not in ids_to_remove
         ]
         self._update_sequence_list_widget()
-        self._set_results_availability(False)  # Removing sequences invalidates results
+        self._set_results_availability(False)
 
     def clear_all_sequences(self):
         """
@@ -393,7 +396,7 @@ class CenterStarApp(QMainWindow):
         if reply == QMessageBox.Yes:
             self.current_sequences_with_ids = []
             self._update_sequence_list_widget()
-            self._set_results_availability(False)  # Clearing sequences invalidates results
+            self._set_results_availability(False)
 
     def _format_center_election_matrix_for_text_save(self, seq_ids_ordered: list[str],
                                                      score_matrix: list[list[float]],
@@ -409,27 +412,26 @@ class CenterStarApp(QMainWindow):
         if num_seqs == 0:
             return output + "  (No sequences for matrix)\n"
 
-        score_example_len = 7  # e.g., "-123.5"
+        score_example_len = 7
         max_name_len = max(len(sid) for sid in seq_ids_ordered) if seq_ids_ordered else 0
-        col_width = max(score_example_len, max_name_len, len("Sum")) + 2  # Add padding
+        col_width = max(score_example_len, max_name_len, len("Sum")) + 2
 
-        # Header row for sequence IDs
-        header_str = f"{'':<{max_id_len + 2}}"  # For the row labels column
+        header_str = f"{'':<{max_id_len + 2}}"
         for seq_id in seq_ids_ordered:
             header_str += f"{seq_id:<{col_width}}"
         header_str += f"| {'Sum':<{col_width}}\n"
         output += header_str
-        output += "-" * len(header_str.strip()) + "\n"  # Separator line
+        output += "-" * len(header_str.strip()) + "\n"
 
-        # Matrix rows
+
         for i in range(num_seqs):
-            row_str = f"{seq_ids_ordered[i]:<{max_id_len + 2}}"  # Row label
+            row_str = f"{seq_ids_ordered[i]:<{max_id_len + 2}}"
             for j in range(num_seqs):
                 if i == j:
-                    row_str += f"{'-':<{col_width}}"  # Diagonal
+                    row_str += f"{'-':<{col_width}}"
                 else:
                     row_str += f"{score_matrix[i][j]:<{col_width}.1f}"
-            row_str += f"| {total_scores[i]:<{col_width}.1f}\n"  # Sum column
+            row_str += f"| {total_scores[i]:<{col_width}.1f}\n"
             output += row_str
 
         output += f"\nChosen Center Sequence: {seq_ids_ordered[center_idx_val]} (Total Sum Score: {total_scores[center_idx_val]:.1f})\n"
@@ -449,7 +451,7 @@ class CenterStarApp(QMainWindow):
             return
 
         table_widget.setRowCount(num_seqs)
-        table_widget.setColumnCount(num_seqs + 1)  # +1 for the "Sum" column
+        table_widget.setColumnCount(num_seqs + 1)
 
         header_labels = list(seq_ids_ordered) + ["Sum"]
         table_widget.setHorizontalHeaderLabels(header_labels)
@@ -467,11 +469,11 @@ class CenterStarApp(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 table_widget.setItem(i, j, item)
 
-            # Sum column
+
             sum_item = QTableWidgetItem(f"{total_scores[i]:.1f}")
             sum_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             sum_item.setFlags(sum_item.flags() & ~Qt.ItemIsEditable)
-            if i == center_idx_val:  # Highlight the chosen center's sum
+            if i == center_idx_val:  #  the chosen center's sum
                 font = sum_item.font()
                 font.setBold(True)
                 sum_item.setFont(font)
@@ -500,7 +502,7 @@ class CenterStarApp(QMainWindow):
         try:
             center_idx_val, center_item_tuple, _, all_seq_items_for_election, \
                 pairwise_score_matrix_for_election, total_scores_for_election = \
-                get_center_sequence_info(self.current_sequences_with_ids, match_score, mismatch_penalty, gap_penalty)
+                get_center_sequence(self.current_sequences_with_ids, match_score, mismatch_penalty, gap_penalty)
 
             center_seq_id_for_display = center_item_tuple[0] if center_item_tuple else "N/A"
             election_seq_ids = [item[0] for item in all_seq_items_for_election]
@@ -534,7 +536,7 @@ class CenterStarApp(QMainWindow):
                 calculate_msa_statistics(aligned_sequences_str, match_score, mismatch_penalty, gap_penalty)
             consensus_seq = generate_consensus(aligned_sequences_str) if aln_len > 0 else ""
 
-            # --- Plain Text Output for Tab 1 ---
+            # --- Output for Tab 1 ---
             text_output_tab1 = "--- Alignment Parameters Used ---\n"
             text_output_tab1 += f"  - Match Score: {match_score}\n"
             text_output_tab1 += f"  - Mismatch Penalty: {mismatch_penalty}\n"
@@ -561,7 +563,7 @@ class CenterStarApp(QMainWindow):
                 f"{'Gaps':<6}", f"{'MatchCons':<10}", f"{'MismatchCons':<13}", f"{'ID%Cons':<8}"
             ]
             header_line = "  " + "  ".join(header_parts)
-            separator_line = "  " + "-" * (len(header_line) - 2)  # -2 for leading spaces
+            separator_line = "  " + "-" * (len(header_line) - 2)
 
             text_output_tab1 += header_line + "\n"
             text_output_tab1 += separator_line + "\n"
@@ -614,15 +616,14 @@ class CenterStarApp(QMainWindow):
             if consensus_seq:
                 text_output_tab1 += f"  - Generated Consensus Sequence Length: {len(consensus_seq)}\n"
 
-            self.results_display.setText(text_output_tab1)  # Use setText for plain text
+            self.results_display.setText(text_output_tab1)
 
-            # Populate Matrix Tables (Identity and Distance)
+
             self.populate_matrix_table(self.identity_matrix_table_widget, id_mat, current_sequence_ids_ordered,
                                        "Identity")
             self.populate_matrix_table(self.distance_matrix_table_widget, dist_mat, current_sequence_ids_ordered,
                                        "Distance")
 
-            # Prepare full text output for saving (this can remain the same as it's for the TXT file)
             self.full_text_output_for_saving = "--- Alignment Parameters Used ---\n"
             self.full_text_output_for_saving += f"Match Score: {match_score}, Mismatch Penalty: {mismatch_penalty}, Gap Penalty: {gap_penalty}\n"
             if len(self.current_sequences_with_ids) > 1:
@@ -630,13 +631,13 @@ class CenterStarApp(QMainWindow):
                     election_seq_ids, pairwise_score_matrix_for_election, total_scores_for_election, center_idx_val,
                     max_id_len_election)
             self.full_text_output_for_saving += "\n\n--- Aligned Sequences & Per-Sequence Stats ---\n"
-            self.full_text_output_for_saving += header_line + "\n" + separator_line + "\n"  # Use generated plain text header/sep
+            self.full_text_output_for_saving += header_line + "\n" + separator_line + "\n"
             if consensus_seq:
                 consensus_display_id_plain = f"{'Consensus':<{max_id_len_msa + 2}}"
                 consensus_gaps_plain = consensus_seq.count('-')
                 self.full_text_output_for_saving += f"{consensus_display_id_plain}  {consensus_seq:<{aln_display_len + 2}} {consensus_gaps_plain:<6} {'N/A':<10} {'N/A':<13} {'100.0%':<8}\n"
                 self.full_text_output_for_saving += separator_line + "\n"
-            for i, seq_str_aligned in enumerate(aligned_sequences_str):  # Re-use logic for plain text line parts
+            for i, seq_str_aligned in enumerate(aligned_sequences_str):
                 seq_id_original = current_sequence_ids_ordered[i]
                 prefix = "* " if seq_id_original == center_seq_id_for_display and len(
                     self.current_sequences_with_ids) > 1 else "  "
@@ -660,7 +661,7 @@ class CenterStarApp(QMainWindow):
                 ]
                 self.full_text_output_for_saving += "  ".join(line_parts_data_plain) + "\n"
 
-            self.full_text_output_for_saving += "\n\n--- Overall MSA Summary Statistics ---\n"  # ... (rest of save text)
+            self.full_text_output_for_saving += "\n\n--- Overall MSA Summary Statistics ---\n"
             self.full_text_output_for_saving += f"Number of Sequences in MSA: {num_aligned_seqs}\nAlignment Length: {aln_len}\n"
             self.full_text_output_for_saving += f"Average Pairwise Identity: {avg_pid:.2f}%\nTotal Gaps in MSA: {total_gaps_msa}\n"
             self.full_text_output_for_saving += f"Fully Conserved Columns: {cons_cols}\nSum-of-Pairs Score: {sp_score}\n"
@@ -703,30 +704,30 @@ class CenterStarApp(QMainWindow):
             return f"\n\n--- {title} ---\n  (Not applicable or empty)\n"
 
         num_seqs = len(header_labels)
-        # Basic consistency check
+
         if num_seqs > 0 and (len(matrix_data) != num_seqs or len(matrix_data[0]) != num_seqs):
             return f"\n\n--- {title} ---\n  (Matrix data inconsistent with labels for {num_seqs} sequences)\n"
-        elif num_seqs == 0 and matrix_data:  # matrix_data exists but no labels
+        elif num_seqs == 0 and matrix_data:
             return f"\n\n--- {title} ---\n  (No labels provided for matrix data)\n"
 
         output = f"\n\n--- {title} ---\n"
-        # Determine column width: max of typical value length (e.g., "100.00") and max label length
-        val_example_len = 7  # e.g., "100.00" or "-123.5" for scores
-        col_width = max(val_example_len,
-                        max(len(lbl) for lbl in header_labels) if header_labels else 0) + 2  # Add padding
 
-        # Header row for sequence IDs
-        output += f"{'':<{max_label_len + 2}}"  # For the row labels column
+        val_example_len = 7
+        col_width = max(val_example_len,
+                        max(len(lbl) for lbl in header_labels) if header_labels else 0) + 2
+
+
+        output += f"{'':<{max_label_len + 2}}"
         for lbl in header_labels:
             output += f"{lbl:<{col_width}}"
         output += "\n"
-        output += "-" * ((max_label_len + 2) + num_seqs * col_width) + "\n"  # Separator line
+        output += "-" * ((max_label_len + 2) + num_seqs * col_width) + "\n"
 
-        # Matrix rows
+
         for i, row_label in enumerate(header_labels):
-            row_str = f"{row_label:<{max_label_len + 2}}"  # Row label
+            row_str = f"{row_label:<{max_label_len + 2}}"
             for val_idx, val in enumerate(matrix_data[i]):
-                row_str += f"{val:<{col_width - 1}.2f} "  # -1 from col_width because of trailing space
+                row_str += f"{val:<{col_width - 1}.2f} "
             output += row_str.strip() + "\n"
         return output
 
@@ -745,14 +746,14 @@ class CenterStarApp(QMainWindow):
         """
         num_seqs = len(header_labels)
 
-        # Validate data consistency
+
         if num_seqs == 0 or not matrix_data or \
                 (matrix_data and not matrix_data[0] and num_seqs > 0) or \
                 (matrix_data and matrix_data[0] and (len(matrix_data) != num_seqs or len(matrix_data[0]) != num_seqs)):
             table_widget.clearContents()
             table_widget.setRowCount(0)
             table_widget.setColumnCount(0)
-            if num_seqs > 0:  # Only show warning if headers were present but data was bad
+            if num_seqs > 0:
                 QMessageBox.warning(self, "Matrix Display Error",
                                     f"The {matrix_type_str} matrix data is inconsistent or empty, "
                                     f"cannot display for {num_seqs} sequences.")
@@ -766,9 +767,9 @@ class CenterStarApp(QMainWindow):
         for i in range(num_seqs):
             for j in range(num_seqs):
                 value = matrix_data[i][j]
-                item = QTableWidgetItem(f"{value:.2f}")  # Format to 2 decimal places
+                item = QTableWidgetItem(f"{value:.2f}")
                 item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Read-only cells
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 tooltip_suffix = "%" if matrix_type_str == "Identity" else ""
                 item.setToolTip(
                     f"{matrix_type_str} between '{header_labels[i]}' and '{header_labels[j]}': {value:.2f}{tooltip_suffix}")
@@ -806,12 +807,11 @@ class CenterStarApp(QMainWindow):
             dialog_title: Title for the save file dialog.
             default_filename: Default filename for the saved image.
         """
-        # Check for empty QTableWidget
+
         if isinstance(widget, QTableWidget) and (widget.rowCount() == 0 or widget.columnCount() == 0):
             QMessageBox.warning(self, "Cannot Save Image",
                                 f"The table for '{dialog_title}' is empty or has no data to save.")
             return
-        # Check for empty QTextEdit (used by save_text_summary_as_image directly, but good general check)
         if isinstance(widget, QTextEdit) and not widget.toPlainText().strip():
             QMessageBox.warning(self, "Cannot Save Image",
                                 f"The content for '{dialog_title}' is empty.")
@@ -826,26 +826,25 @@ class CenterStarApp(QMainWindow):
         original_parent = None
         original_pos = None
         original_flags = None
-        layout_management_disabled = False  # Flag to track if parent layout was disabled
+        layout_management_disabled = False
 
         try:
-            QApplication.processEvents()  # Ensure widget is up-to-date
+            QApplication.processEvents()
 
             if isinstance(widget, QTableWidget):
                 h_header = widget.horizontalHeader()
                 v_header = widget.verticalHeader()
 
-                # Calculate the total width and height needed for the table content
                 render_width = sum(
                     widget.columnWidth(i) for i in range(widget.columnCount()) if not widget.isColumnHidden(i))
-                if v_header.isVisible() and not v_header.isHidden():  # Check visibility and explicit hidden state
+                if v_header.isVisible() and not v_header.isHidden():
                     render_width += v_header.width()
 
                 render_height = sum(widget.rowHeight(i) for i in range(widget.rowCount()) if not widget.isRowHidden(i))
                 if h_header.isVisible() and not h_header.isHidden():
                     render_height += h_header.height()
 
-                render_width += widget.frameWidth() * 2  # Account for frame
+                render_width += widget.frameWidth() * 2
                 render_height += widget.frameWidth() * 2
 
                 if render_width <= 0 or render_height <= 0:
@@ -853,61 +852,54 @@ class CenterStarApp(QMainWindow):
                                         f"Table '{dialog_title}' has zero or negative calculated dimensions for rendering.")
                     return
 
-                # --- Temporary Resize Strategy for QTableWidget ---
                 original_geometry = widget.geometry()
                 original_min_size = widget.minimumSize()
                 original_max_size = widget.maximumSize()
                 original_h_policy = widget.horizontalScrollBarPolicy()
                 original_v_policy = widget.verticalScrollBarPolicy()
-                original_size_policy = widget.sizePolicy()  # Store original QSizePolicy
+                original_size_policy = widget.sizePolicy()
 
                 parent_layout_obj = widget.parentWidget().layout() if widget.parentWidget() else None
                 if parent_layout_obj:
-                    # Try to disable layout updates on the parent if possible
-                    # This prevents the layout from fighting our resize attempt.
+
                     if hasattr(parent_layout_obj, 'setEnabled'):
                         parent_layout_obj.setEnabled(False)
                         layout_management_disabled = True
-                    # Alternatively, temporarily remove widget from layout - more complex to restore
 
                 widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
                 widget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-                # Set fixed size to ensure full content is rendered
                 widget.setMinimumSize(render_width, render_height)
-                widget.setMaximumSize(render_width, render_height)  # Important for fixed sizing
+                widget.setMaximumSize(render_width, render_height)
                 widget.resize(render_width, render_height)
-                widget.updateGeometry()  # Request geometry update
+                widget.updateGeometry()
 
-                QApplication.processEvents()  # Allow Qt to process resize and layout changes
-                widget.update()  # Ensure it repaints if needed
+                QApplication.processEvents()
+                widget.update()
                 QApplication.processEvents()
 
-                # Capture the widget (now that it's fully sized)
-                # Using QWidget.render() can sometimes be more reliable for complex widgets
-                pixmap_to_save = QPixmap(render_width, render_height)
-                pixmap_to_save.fill(widget.palette().window().color())  # Fill with background
 
-                # Create a QPainter for rendering
+                pixmap_to_save = QPixmap(render_width, render_height)
+                pixmap_to_save.fill(widget.palette().window().color())
+
+
                 painter = QPainter(pixmap_to_save)
-                # Render the widget onto the pixmap.
-                # Using QPoint() for the target position (top-left of pixmap).
-                # Using QRegion(widget.rect()) for the source region (entire widget).
+
                 widget.render(painter, QPoint(), QRegion(widget.rect()),
                               QWidget.RenderFlags(QWidget.DrawWindowBackground | QWidget.DrawChildren))
                 painter.end()
 
-                # --- Restore Original State for QTableWidget ---
+
                 widget.setMinimumSize(original_min_size)
                 widget.setMaximumSize(original_max_size)
-                widget.setSizePolicy(original_size_policy)  # Restore original QSizePolicy
+                widget.setSizePolicy(original_size_policy)
                 widget.setHorizontalScrollBarPolicy(original_h_policy)
                 widget.setVerticalScrollBarPolicy(original_v_policy)
 
                 if layout_management_disabled and parent_layout_obj:
                     parent_layout_obj.setEnabled(True)
-                    # parent_layout_obj.activate() # Force re-layout
-                else:  # If no layout was disabled, try to restore geometry directly
+
+                else:
                     widget.setGeometry(original_geometry)
 
                 widget.updateGeometry()
@@ -916,12 +908,11 @@ class CenterStarApp(QMainWindow):
                 QApplication.processEvents()
 
 
-            elif isinstance(widget, QTextEdit):  # Special handling for QTextEdit to get full document
+            elif isinstance(widget, QTextEdit):
                 doc = widget.document()
-                QApplication.processEvents()  # Ensure layout is up-to-date
+                QApplication.processEvents()
 
-                # Use document size for QTextEdit for full content capture
-                doc_size = doc.size()  # This is a QSizeF
+                doc_size = doc.size()
                 image_width = int(doc_size.width())
                 image_height = int(doc_size.height())
 
@@ -931,30 +922,30 @@ class CenterStarApp(QMainWindow):
                     return
 
                 pixmap_to_save = QPixmap(image_width, image_height)
-                pixmap_to_save.fill(widget.palette().base().color())  # Use QTextEdit's base color
+                pixmap_to_save.fill(widget.palette().base().color())
 
                 painter = QPainter(pixmap_to_save)
-                doc.drawContents(painter)  # Draw the entire document
+                doc.drawContents(painter)
                 painter.end()
 
-            else:  # Fallback for other QWidget types (less common for this app)
+            else:
                 if not widget.isVisible() or widget.width() <= 1 or widget.height() <= 1:
                     QMessageBox.warning(self, "Cannot Save Image",
                                         f"The content for '{dialog_title}' is not visible or has no size to grab.")
                     return
-                pixmap_to_save = widget.grab()  # Standard grab for other widgets
+                pixmap_to_save = widget.grab()
 
             if pixmap_to_save is None or pixmap_to_save.isNull():
                 QMessageBox.critical(self, "Image Creation Error",
                                      "Failed to create image from widget content. The pixmap is null.")
                 return
 
-            # Determine file format and save
+
             file_format_str = "PNG"
             if filepath.lower().endswith(".jpg") or filepath.lower().endswith(".jpeg"):
                 file_format_str = "JPG"
 
-            quality = -1 if file_format_str == "PNG" else 90  # PNG quality is for compression, JPG 0-100 for quality
+            quality = -1 if file_format_str == "PNG" else 90
 
             if not pixmap_to_save.save(filepath, file_format_str, quality):
                 QMessageBox.critical(self, "Image Save Error",
@@ -968,16 +959,15 @@ class CenterStarApp(QMainWindow):
             import traceback
             traceback.print_exc()
         finally:
-            # Final cleanup: Ensure layout is re-enabled if it was disabled
             if layout_management_disabled and parent_layout_obj and hasattr(parent_layout_obj, 'setEnabled'):
                 if not parent_layout_obj.isEnabled():
                     parent_layout_obj.setEnabled(True)
-                    if widget.parentWidget(): widget.parentWidget().updateGeometry()  # Trigger re-layout
+                    if widget.parentWidget(): widget.parentWidget().updateGeometry()
                     QApplication.processEvents()
 
     def save_text_summary_as_image(self):
         """Saves the content of the 'Alignment & Summary' QTextEdit (Tab 1) as an image."""
-        if not self.results_display.toPlainText().strip():  # Check if QTextEdit is empty
+        if not self.results_display.toPlainText().strip():
             QMessageBox.warning(self, "No Text Output",
                                 "The summary text output (Tab 1) is empty. Cannot save as image.")
             return

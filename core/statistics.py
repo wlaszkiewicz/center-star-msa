@@ -1,5 +1,9 @@
-def calculate_msa_statistics(aligned_sequences: list[str], match_score: int, mismatch_penalty: int, gap_penalty: int) -> \
-tuple[float, int, int, float, list[list[float]], list[list[float]], int, int]:
+def calculate_msa_statistics(
+    aligned_sequences: list[str],
+    match_score: int,
+    mismatch_penalty: int,
+    gap_penalty: int
+) -> tuple[float, int, int, float, list[list[float]], list[list[float]], int, int]:
     """
     Calculates various statistics for a given multiple sequence alignment.
 
@@ -20,7 +24,7 @@ tuple[float, int, int, float, list[list[float]], list[list[float]], int, int]:
             - Number of sequences in the alignment (int).
             - Length of the alignment (int).
     """
-    if not aligned_sequences or not all(isinstance(s, str) for s in aligned_sequences):  # Basic check
+    if not aligned_sequences or not all(isinstance(s, str) for s in aligned_sequences):
         return 0.0, 0, 0, 0.0, [[]], [[]], 0, 0
 
     num_seqs = len(aligned_sequences)
@@ -29,28 +33,46 @@ tuple[float, int, int, float, list[list[float]], list[list[float]], int, int]:
 
     aln_len = len(aligned_sequences[0])
     if any(len(s) != aln_len for s in aligned_sequences):
-        # This indicates a malformed MSA if sequences have different lengths
-        # Return empty/error state or raise an exception
         return 0.0, 0, 0, 0.0, \
             [[0.0] * num_seqs for _ in range(num_seqs)], \
             [[0.0] * num_seqs for _ in range(num_seqs)], \
-            num_seqs, 0  # Indicate 0 alignment length due to inconsistency
+            num_seqs, 0
 
-    if aln_len == 0:  # All sequences are empty strings
+    if aln_len == 0:
         empty_id_matrix = [[100.0 if i == j else 0.0 for j in range(num_seqs)] for i in range(num_seqs)]
         empty_dist_matrix = [[0.0 if i == j else 100.0 for j in range(num_seqs)] for i in range(num_seqs)]
         return 0.0, 0, 0, 0.0, empty_id_matrix, empty_dist_matrix, num_seqs, aln_len
 
-    # 1. Total gaps in MSA
-    total_gaps_msa = sum(s.count('-') for s in aligned_sequences)
+    total_gaps_msa = _count_total_gaps(aligned_sequences)
+    fully_conserved_cols = _count_fully_conserved_columns(aligned_sequences)
+    avg_pid, id_matrix, dist_matrix = _calculate_pairwise_identity_and_matrices(aligned_sequences)
+    sp_score = _calculate_sum_of_pairs_score(aligned_sequences, match_score, mismatch_penalty, gap_penalty)
 
-    # 2. Fully conserved columns
+    return (
+        avg_pid,
+        total_gaps_msa,
+        fully_conserved_cols,
+        sp_score,
+        id_matrix,
+        dist_matrix,
+        num_seqs,
+        aln_len
+    )
+
+
+def _count_total_gaps(aligned_sequences: list[str]) -> int:
+    return sum(s.count('-') for s in aligned_sequences)
+
+
+def _count_fully_conserved_columns(aligned_sequences: list[str]) -> int:
+    num_seqs = len(aligned_sequences)
+    aln_len = len(aligned_sequences[0])
     fully_conserved_cols = 0
-    for j in range(aln_len):  # Iterate over columns
+    for j in range(aln_len):
         first_char_in_col = None
         is_conserved_this_col = True
         has_any_nongap_char = False
-        for i in range(num_seqs):  # Iterate over sequences for this column
+        for i in range(num_seqs):
             char_ij = aligned_sequences[i][j]
             if char_ij != '-':
                 has_any_nongap_char = True
@@ -58,75 +80,82 @@ tuple[float, int, int, float, list[list[float]], list[list[float]], int, int]:
                     first_char_in_col = char_ij
                 elif first_char_in_col != char_ij:
                     is_conserved_this_col = False
-                    break  # Column is not conserved
-            # If char_ij is '-', it doesn't break conservation unless all are '-'
-        if is_conserved_this_col and has_any_nongap_char:  # All non-gap chars are same
+                    break
+        if is_conserved_this_col and has_any_nongap_char:
             fully_conserved_cols += 1
+    return fully_conserved_cols
 
-    # 3. Average Pairwise Identity (PID) & Matrices
+
+def _calculate_pairwise_identity_and_matrices(
+    aligned_sequences: list[str]
+) -> tuple[float, list[list[float]], list[list[float]]]:
+    num_seqs = len(aligned_sequences)
+    aln_len = len(aligned_sequences[0])
     total_pid_sum = 0.0
     num_pairs = 0
     id_matrix = [[0.0] * num_seqs for _ in range(num_seqs)]
     dist_matrix = [[0.0] * num_seqs for _ in range(num_seqs)]
 
     for i in range(num_seqs):
-        # Diagonal elements: identity is 100% (or 0% if seq is all gaps), distance is 0%
-        if aln_len > 0 and aligned_sequences[i].count('-') < aln_len:  # Sequence is not all gaps
+        if aln_len > 0 and aligned_sequences[i].count('-') < aln_len:
             id_matrix[i][i] = 100.0
-        else:  # Sequence is all gaps or alignment length is 0
+        else:
             id_matrix[i][i] = 0.0
         dist_matrix[i][i] = 0.0
 
         for j in range(i + 1, num_seqs):
             matches = 0
-            relevant_cols_for_pid = 0  # Columns where at least one sequence is not a gap
-
+            relevant_cols_for_pid = 0
             for k in range(aln_len):
                 c1 = aligned_sequences[i][k]
                 c2 = aligned_sequences[j][k]
-
-                if c1 == '-' and c2 == '-':  # Ignore positions where both are gaps for PID
+                if c1 == '-' and c2 == '-':
                     continue
                 relevant_cols_for_pid += 1
-                if c1 != '-' and c1 == c2:  # Match, and c1 is not a gap
+                if c1 != '-' and c1 == c2:
                     matches += 1
-
             current_pair_pid = 0.0
             if relevant_cols_for_pid > 0:
                 current_pair_pid = (matches / relevant_cols_for_pid) * 100.0
-
             id_matrix[i][j] = id_matrix[j][i] = current_pair_pid
             dist_matrix[i][j] = dist_matrix[j][i] = 100.0 - current_pair_pid
-
             total_pid_sum += current_pair_pid
             num_pairs += 1
 
     avg_pid = 0.0
     if num_pairs > 0:
         avg_pid = total_pid_sum / num_pairs
-    elif num_seqs == 1 and aln_len > 0:  # Single sequence
+    elif num_seqs == 1 and aln_len > 0:
         avg_pid = 100.0 if aligned_sequences[0].count('-') < aln_len else 0.0
 
-    # 4. Sum-of-Pairs (SP) Score
+    return avg_pid, id_matrix, dist_matrix
+
+
+def _calculate_sum_of_pairs_score(
+    aligned_sequences: list[str],
+    match_score: int,
+    mismatch_penalty: int,
+    gap_penalty: int
+) -> float:
+    num_seqs = len(aligned_sequences)
+    aln_len = len(aligned_sequences[0])
     sp_score = 0.0
     if num_seqs >= 2:
         for i in range(num_seqs):
             for j in range(i + 1, num_seqs):
                 current_pair_score = 0
-                for k in range(aln_len):  # Iterate over columns
+                for k in range(aln_len):
                     ci = aligned_sequences[i][k]
                     cj = aligned_sequences[j][k]
-                    if ci == '-' and cj == '-':  # Gap-Gap
-                        continue  # Often scored as 0 or ignored in SP calculation
-                    elif ci == '-' or cj == '-':  # Gap-Residue
+                    if ci == '-' and cj == '-':
+                        continue
+                    elif ci == '-' or cj == '-':
                         current_pair_score += gap_penalty
-                    elif ci == cj:  # Match
+                    elif ci == cj:
                         current_pair_score += match_score
-                    else:  # Mismatch
+                    else:
                         current_pair_score += mismatch_penalty
                 sp_score += current_pair_score
-    elif num_seqs == 1:  # SP score is typically 0 for a single sequence
+    elif num_seqs == 1:
         sp_score = 0.0
-
-    return avg_pid, total_gaps_msa, fully_conserved_cols, sp_score, id_matrix, dist_matrix, num_seqs, aln_len
-
+    return sp_score

@@ -27,7 +27,7 @@ class AddSequenceDialog(QDialog):
 
         self.id_edit = QLineEdit()
         self.seq_edit = QTextEdit()
-        self.seq_edit.setAcceptRichText(False)  # Plain text only
+        self.seq_edit.setAcceptRichText(False)
         self.seq_edit.setPlaceholderText("Enter sequence data (e.g., ATGCGTCAG)...")
         self.seq_edit.setMinimumHeight(100)
 
@@ -64,8 +64,7 @@ class AddSequenceDialog(QDialog):
             QMessageBox.warning(self, "Input Error", "Sequence data cannot be empty.")
             return
 
-        # Validate sequence characters (allow A-Z for proteins, '-' for gaps if needed, though primarily for DNA/RNA here)
-        valid_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ-")  # Extend if other chars are common/expected
+        valid_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ-")
         invalid_found = [char for char in seq_data if char not in valid_chars]
         if invalid_found:
             QMessageBox.warning(self, "Invalid Characters",
@@ -73,7 +72,7 @@ class AddSequenceDialog(QDialog):
                                 "Only A-Z and '-' are allowed.")
             return
 
-        if not seq_id:  # Generate default ID if none provided
+        if not seq_id:
             count = 1
             seq_id = f"{self.default_id_prefix}{count}"
             while seq_id in self.existing_ids_for_dialog:

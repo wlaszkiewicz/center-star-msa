@@ -5,54 +5,50 @@ Match Score: 1, Mismatch Penalty: -1, Gap Penalty: -2
 --- Center Election Score Matrix ---
 This matrix shows the alignment scores between all pairs of your input sequences. The Center Star algorithm picks the sequence with the highest 'Sum' score as the 'center' to guide the multiple alignment.
 
-         s1_test  s2_test  s3_test  s4_test  s5_test  | Sum      
---------------------------------------------------
-s1_test  -        7.0      -3.0     0.0      -3.0     | 1.0      
-s2_test  7.0      -        -3.0     0.0      -4.0     | 0.0      
-s3_test  -3.0     -3.0     -        2.0      -7.0     | -11.0    
-s4_test  0.0      0.0      2.0      -        -3.0     | -1.0     
-s5_test  -3.0     -4.0     -7.0     -3.0     -        | -17.0    
+            NP_061820.  CAG28593.1  AAH65862.1  QCB65867.1  | Sum         
+-----------------------------------------------------
+NP_061820.  -           -75.0       -129.0      -497.0      | -701.0      
+CAG28593.1  -75.0       -           -133.0      -495.0      | -703.0      
+AAH65862.1  -129.0      -133.0      -           -429.0      | -691.0      
+QCB65867.1  -497.0      -495.0      -429.0      -           | -1421.0     
 
-Chosen Center Sequence: s1_test (Total Sum Score: 1.0)
+Chosen Center Sequence: AAH65862.1 (Total Sum Score: -691.0)
 
 
 --- Aligned Sequences & Per-Sequence Stats ---
-  ID           Aligned Sequence  Gaps    MatchCons   MismatchCons   ID%Cons 
-  --------------------------------------------------------------------------
-Consensus    AT-TGCCATT   1      N/A        N/A           100.0%  
-  --------------------------------------------------------------------------
-* s1_test    AT-TGCCATT    1       9           0              100.00  %
-  s2_test    AT-GGCCATT    1       8           1              88.89   %
-  s3_test    ATCCATTTTT    0       4           5              44.44   %
-  s4_test    ATCT-TC-TT    2       6           1              66.67   %
-  s5_test    AC-TG--ACC    3       4           3              44.44   %
+  ID            Aligned Sequence                                                                                                                                                                                                                                                                                                                                                            Gaps    MatchCons   MismatchCons   ID%Cons 
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Consensus     MADGDL--VAKCAG--------AV-EA-DKAAKFCE-V------L----NR----L-GK----AAGDT--LKL-AP--IFAGI-SQGD-L-A----------GSPA-GAA-H--------G-----------------A-T-V----L------------------KKLG-EHLKAKG-DHAALL-EPL----A-NRHANEHK-VADNCFDLI--RE---------VEVKCM-AE----TAGLDAAGQ---GALR-------RV-AD-AVGG-----D----------I------------D------------G---------YEK------------------EIAEA--------G-   213    N/A        N/A           100.0%  
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  NP_061820.  M--GD---VEK--G--------KK-IF-IMKCSQCH-T------V----EK----G-GK-----HKTG--PNL-HG--LF-GR-KTG--Q-A------------P--GYS-Y--------T-----------------A---A----N------------------KNKG----IIWG--EDTLM-EYL---------EN-PK-KYIPGTKMI---F---------VGIKKK-EE----RA--D---------L----------------------------------I-------------------------A---------YLK-------------------KATN--------E-    255     36          69             24.49   %
+  CAG28593.1  M-------V-K-----------QI-E--SKTA-FQE--------------A----L--D----AAGD----KL-----------VVVD--------------FS-A--TW-C--------G--------------------------P------------------CK----MIK-PF-FH-SLS-EKY----S-NVIFLEVD-V-DDCQDVA--SE---------CEVKCM--P----TFQFFKKGQ--------------KV-GE-FSGA-----N----------K------------E------------K---------LEA------------------TINEL--------V-    255     44          61             29.93   %
+* AAH65862.1  MADHDL--VLKCWG--------AV-EA-DYAANGGE-V------L----NR----L-FK----EYPDT--LKL-FP--KFSGI-SQGD-L-A----------GSPA-VAA-H--------G-----------------A-T-V----L------------------KKLG-ELLKAKG-DHAALL-KPL----A-NTHANIHK-VALNNFRLI--TE---------VLVKVM-AE----KAGLDAAGQ---GALR-------RV-MD-AVIG-----D----------I------------D------------G---------YYK------------------EIGFA--------G-    213     116         31             78.91   %
+  QCB65867.1  MKPVTLYDVAEYAGVSYQTVSRVVNQASHVSAKTREKVEAAMAELNYIPNRVAQQLAGKQSLLIGVATSSLALHAPSQIVAAIKSRADQLGASVVVSMVERSGVEACKAAVHNLLAQRVSGLIINYPLDDQDAIAVEAACTNVPALFLDVSDQTPINSIIFSHEDGTRLGVEHLVALGHQQIALLAGPLSSVSARLRLAGWHKYLTRNQIQPIAEREGDWSAMSGFQQTMQMLNEGIVPTAMLVANDQMALGAMRAITESGLRVGADISVVGYDDTEDSSCYIPPLTTIKQDFRLLGQTSVDRLLQLSQGQAVKGNQLLPVSLVKRKTTLAPNTQTASPRALADSLMQLARQVSRLESGQ    0       84          63             57.14   %
 
 
 --- Overall MSA Summary Statistics ---
-Number of Sequences in MSA: 5
-Alignment Length: 10
-Average Pairwise Identity: 44.67%
-Total Gaps in MSA: 7
-Fully Conserved Columns: 2
-Sum-of-Pairs Score: -33.0
-Generated Consensus Length: 10
+Number of Sequences in MSA: 4
+Alignment Length: 360
+Average Pairwise Identity: 12.29%
+Total Gaps in MSA: 723
+Fully Conserved Columns: 231
+Sum-of-Pairs Score: -2039.0
+Generated Consensus Length: 360
 
 
 --- Pairwise Identity Matrix (%) ---
-           s1_test  s2_test  s3_test  s4_test  s5_test  
---------------------------------------------------------
-s1_test    100.00   88.89    40.00    60.00    44.44
-s2_test    88.89    100.00   40.00    50.00    33.33
-s3_test    40.00    40.00    100.00   60.00    10.00
-s4_test    60.00    50.00    60.00    100.00   20.00
-s5_test    44.44    33.33    10.00    20.00    100.00
+            NP_061820.  CAG28593.1  AAH65862.1  QCB65867.1  
+------------------------------------------------------------
+NP_061820.  100.00      5.15        20.41       5.00
+CAG28593.1  5.15        100.00      19.05       4.17
+AAH65862.1  20.41       19.05       100.00      20.00
+QCB65867.1  5.00        4.17        20.00       100.00
 
 
 --- Pairwise Distance Matrix ---
-           s1_test  s2_test  s3_test  s4_test  s5_test  
---------------------------------------------------------
-s1_test    0.00     11.11    60.00    40.00    55.56
-s2_test    11.11    0.00     60.00    50.00    66.67
-s3_test    60.00    60.00    0.00     40.00    90.00
-s4_test    40.00    50.00    40.00    0.00     80.00
-s5_test    55.56    66.67    90.00    80.00    0.00
+            NP_061820.  CAG28593.1  AAH65862.1  QCB65867.1  
+------------------------------------------------------------
+NP_061820.  0.00        94.85       79.59       95.00
+CAG28593.1  94.85       0.00        80.95       95.83
+AAH65862.1  79.59       80.95       0.00        80.00
+QCB65867.1  95.00       95.83       80.00       0.00
