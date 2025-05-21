@@ -253,31 +253,67 @@ class CenterStarApp(QMainWindow):
     def load_fasta_file(self):
         """
         Opens a file dialog to load sequences from a FASTA file.
-        Clears existing sequences and results upon successful load.
+        Appends new sequences to the existing list and handles potential ID conflicts.
         """
-        filepath, _ = QFileDialog.getOpenFileName(self, "Open FASTA File", "",
-                                                  "FASTA files (*.fasta *.fa *.fna *.faa);;All files (*)")
-        if filepath:
+        filepaths, _ = QFileDialog.getOpenFileNames(self, "Open FASTA File(s)", "",
+                                                    "FASTA files (*.fasta *.fa *.fna *.faa);;All files (*)")
+        if not filepaths:
+            return
+
+        sequences_loaded_count = 0
+        sequences_appended_count = 0
+        newly_parsed_sequences = []
+
+        for filepath in filepaths:
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     file_content = f.read()
-                parsed_sequences = parse_fasta(file_content)
-                if not parsed_sequences:
-                    QMessageBox.warning(self, "Warning", "No sequences found or parsed from the FASTA file.")
-                    return
 
-                # Clear previous results and sequences
-                self._set_results_availability(False)
-                self.current_sequences_with_ids = parsed_sequences
-                self._update_sequence_list_widget()
-                QMessageBox.information(self, "Success",
-                                        f"Successfully loaded {len(parsed_sequences)} sequences from {filepath}.")
+                parsed_sequences_from_file = parse_fasta(file_content)
+
+                if not parsed_sequences_from_file:
+                    QMessageBox.warning(self, "Warning", f"No sequences found or parsed from {filepath}.")
+                    continue
+
+                sequences_loaded_count += len(parsed_sequences_from_file)
+
+                existing_ids = self._get_existing_ids()
+                temp_sequences_to_add = []
+                ids_in_current_file_load = set()
+
+                for seq_id, seq_data in parsed_sequences_from_file:
+                    original_seq_id = seq_id
+                    counter = 1
+                    # Ensure ID is unique within the current file load and globally
+                    while seq_id in existing_ids or seq_id in ids_in_current_file_load:
+                        seq_id = f"{original_seq_id}_{counter}"
+                        counter += 1
+
+                    if seq_id != original_seq_id:
+                        QMessageBox.information(self, "ID Conflict Resolved",
+                                                f"Sequence ID '{original_seq_id}' from {filepath} already exists or was duplicated in this load.\n"
+                                                f"It has been renamed to '{seq_id}'.")
+
+                    temp_sequences_to_add.append((seq_id, seq_data))
+                    ids_in_current_file_load.add(seq_id)
+
+                newly_parsed_sequences.extend(temp_sequences_to_add)
 
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"An error occurred while parsing the FASTA file:\n{e}")
-                self._set_results_availability(False)
-                self.current_sequences_with_ids = []
-                self._update_sequence_list_widget()
+                QMessageBox.critical(self, "Error", f"An error occurred while parsing {filepath}:\n{e}")
+                # Optionally, decide if you want to stop processing further files on error
+                # or just skip the problematic one. Current implementation skips.
+
+        if newly_parsed_sequences:
+            self._set_results_availability(False)  # Invalidate old results
+            self.current_sequences_with_ids.extend(newly_parsed_sequences)
+            self._update_sequence_list_widget()
+            sequences_appended_count = len(newly_parsed_sequences)
+            QMessageBox.information(self, "Success",
+                                    f"Successfully appended {sequences_appended_count} new sequences from the selected file(s).\n"
+                                    f"Total sequences processed from files: {sequences_loaded_count}.")
+        elif sequences_loaded_count == 0 and filepaths:  # Files were selected but no sequences came from them
+            QMessageBox.information(self, "Info", "No new sequences were added from the selected file(s).")
 
     def load_test_sequences(self):
         """

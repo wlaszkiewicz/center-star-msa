@@ -87,7 +87,7 @@ def needleman_wunsch(seq1_str: str, seq2_str: str, match_score: int = 1, mismatc
             aligned_s1.append('-')
             aligned_s2.append(s2_char_tb)
             j_tb -= 1
-        else:  # Fallback, should ideally not be common if logic is correct
+        else:  # Fallback should ideally not be common if logic is correct
             if i_tb > 0:  # Prefer consuming from seq1 if ambiguous
                 aligned_s1.append(s1_char_tb)
                 aligned_s2.append('-')
